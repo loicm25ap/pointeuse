@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Pointeuse</title>
+  <style>
+    :root {
+      --bg: #0e0f10;
+      --panel: #17191b;
+      --panel-2: #1e2124;
+      --line: #2a2e32;
+      --text: #e8e6e1;
+      --muted: #9a958c;
+      --gold: #c4a574;
+      --gold-dim: #8a7349;
+      --go: #3d7a5a;
+      --stop: #8a4a45;
+      --warn: #b8893a;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+    header {
+      padding: 18px 22px 8px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    h1 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--gold);
+    }
+    .clock { color: var(--muted); font-variant-numeric: tabular-nums; font-size: 14px; }
+    main {
+      max-width: 920px;
+      margin: 0 auto;
+      padding: 18px 16px 40px;
+    }
+    .now {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 16px 18px;
+      margin-bottom: 16px;
+    }
+    .now .label { color: var(--muted); font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; }
+    .now .task {
+      font-size: 22px;
+      margin: 6px 0 4px;
+      min-height: 1.3em;
+    }
+    .now .elapsed {
+      font-size: 32px;
+      font-variant-numeric: tabular-nums;
+      font-weight: 600;
+      color: var(--gold);
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    button.task-btn {
+      background: var(--panel-2);
+      color: var(--text);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px 10px;
+      font-size: 15px;
+      cursor: pointer;
+      min-height: 64px;
+    }
+    button.task-btn:hover { border-color: var(--gold-dim); }
+    button.task-btn.active {
+      background: #243328;
+      border-color: var(--go);
+      color: #d7eadc;
+    }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; }
+    .actions button, .bar button {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      color: var(--text);
+      border-radius: 8px;
+      padding: 10px 14px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .btn-stop { border-color: var(--stop) !important; color: #f0d0cd !important; }
+    .btn-gold { border-color: var(--gold-dim) !important; color: var(--gold) !important; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      font-variant-numeric: tabular-nums;
+    }
+    th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--line); }
+    th { color: var(--muted); font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
+    .totals { margin-top: 16px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+    .totals h2 { margin: 0 0 8px; font-size: 13px; color: var(--muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; }
+    .bar { display: flex; gap: 8px; flex-wrap: wrap; margin: 14px 0; }
+    .add {
+      background: var(--panel);
+      border: 1px dashed var(--line);
+      border-radius: 10px;
+      padding: 12px;
+      margin-bottom: 16px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .add input {
+      flex: 1;
+      min-width: 160px;
+      background: var(--bg);
+      border: 1px solid var(--line);
+      color: var(--text);
+      border-radius: 8px;
+      padding: 10px 12px;
+    }
+    .hint { color: var(--muted); font-size: 12px; line-height: 1.45; margin-top: 10px; }
+    .del { color: var(--muted); cursor: pointer; border: none; background: none; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Pointeuse</h1>
+    <div class="clock" id="clock"></div>
+  </header>
+  <main>
+    <div class="now">
+      <div class="label">En cours</div>
+      <div class="task" id="currentTask">— arrêté —</div>
+      <div class="elapsed" id="elapsed">00:00:00</div>
+    </div>
+
+    <div class="grid" id="buttons"></div>
+
+    <div class="actions">
+      <button class="btn-stop" id="btnStop">Stop / pause</button>
+      <button id="btnInterrupt">Interruption</button>
+    </div>
+
+    <div class="add">
+      <input id="newTask" placeholder="Nouvelle tâche (ex. Réglage, Admin, Qualité)" />
+      <button class="btn-gold" id="btnAdd">Ajouter</button>
+    </div>
+
+    <div class="bar">
+      <button class="btn-gold" id="btnCopy">Copier le jour pour Grok</button>
+      <button id="btnCsv">Télécharger CSV</button>
+      <button id="btnClearDay">Vider le jour</button>
+    </div>
+
+    <div class="totals" id="totals"></div>
+
+    <h2 style="font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:18px 0 6px;">Journal du jour</h2>
+    <table>
+      <thead>
+        <tr><th>Début</th><th>Fin</th><th>Durée</th><th>Tâche</th><th></th></tr>
+      </thead>
+      <tbody id="log"></tbody>
+    </table>
+    <p class="hint">
+      Données stockées uniquement dans ce navigateur (pas de cloud). Utilisez le même appareil et le même navigateur.
+      Le soir : « Copier le jour pour Grok », collez dans Grok, demandez le tableau et le texte de justification.
+    </p>
+  </main>
+
+<script>
+const DEFAULT_TASKS = ["Tâche A", "Tâche B", "Admin", "Réunion", "Interruption"];
+const $ = (id) => document.getElementById(id);
+
+function load(key, fallback) {
+  try { return JSON.parse(localStorage.getItem(key)) ?? fallback; }
+  catch { return fallback; }
+}
+function save(key, val) { localStorage.setItem(key, JSON.stringify(val)); }
+
+function todayKey() {
+  const d = new Date();
+  return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
+}
+
+let tasks = load("p_tasks", DEFAULT_TASKS);
+let current = load("p_current", null);
+let logsByDay = load("p_logs", {});
+if (!logsByDay[todayKey()]) logsByDay[todayKey()] = [];
+
+function fmt(ms) {
+  if (ms < 0) ms = 0;
+  const s = Math.floor(ms / 1000);
+  const h = String(Math.floor(s / 3600)).padStart(2,"0");
+  const m = String(Math.floor((s % 3600) / 60)).padStart(2,"0");
+  const sec = String(s % 60).padStart(2,"0");
+  return h + ":" + m + ":" + sec;
+}
+function hm(ts) {
+  const d = new Date(ts);
+  return String(d.getHours()).padStart(2,"0") + ":" + String(d.getMinutes()).padStart(2,"0");
+}
+
+function persist() {
+  save("p_tasks", tasks);
+  save("p_current", current);
+  save("p_logs", logsByDay);
+}
+
+function stopCurrent() {
+  if (!current) return;
+  const end = Date.now();
+  logsByDay[todayKey()].push({
+    task: current.task,
+    start: current.start,
+    end
+  });
+  current = null;
+  persist();
+}
+
+function startTask(name) {
+  if (current && current.task === name) return;
+  stopCurrent();
+  current = { task: name, start: Date.now() };
+  persist();
+  render();
+}
+
+function renderButtons() {
+  const box = $("buttons");
+  box.innerHTML = "";
+  tasks.forEach((name, i) => {
+    const b = document.createElement("button");
+    b.className = "task-btn" + (current && current.task === name ? " active" : "");
+    b.textContent = name;
+    b.onclick = () => startTask(name);
+    b.oncontextmenu = (e) => {
+      e.preventDefault();
+      if (!confirm("Supprimer \u00ab " + name + " \u00bb ?")) return;
+      if (current && current.task === name) stopCurrent();
+      tasks.splice(i, 1);
+      persist();
+      render();
+    };
+    box.appendChild(b);
+  });
+}
+
+function renderLog() {
+  const day = logsByDay[todayKey()] || [];
+  $("log").innerHTML = day.map((row, i) =>
+    "<tr><td>" + hm(row.start) + "</td><td>" + hm(row.end) + "</td><td>" +
+    fmt(row.end - row.start) + "</td><td>" + row.task +
+    "</td><td><button class='del' data-i='" + i + "'>x</button></td></tr>"
+  ).join("");
+  $("log").querySelectorAll(".del").forEach(btn => {
+    btn.onclick = () => {
+      logsByDay[todayKey()].splice(Number(btn.dataset.i), 1);
+      persist();
+      render();
+    };
+  });
+
+  const sums = {};
+  day.forEach(r => { sums[r.task] = (sums[r.task] || 0) + (r.end - r.start); });
+  if (current) sums[current.task] = (sums[current.task] || 0) + (Date.now() - current.start);
+  const lines = Object.entries(sums)
+    .sort((a,b) => b[1]-a[1])
+    .map(([k,v]) => k + " \u2014 " + fmt(v));
+  $("totals").innerHTML = "<h2>Totaux du " + todayKey() + "</h2>" +
+    (lines.length ? lines.map(l => "<div>" + l + "</div>").join("") : "<div>Aucune entrée</div>");
+}
+
+function renderNow() {
+  $("clock").textContent = new Date().toLocaleString("fr-FR");
+  if (current) {
+    $("currentTask").textContent = current.task;
+    $("elapsed").textContent = fmt(Date.now() - current.start);
+  } else {
+    $("currentTask").textContent = "\u2014 arrêté \u2014";
+    $("elapsed").textContent = "00:00:00";
+  }
+}
+
+function render() {
+  renderButtons();
+  renderLog();
+  renderNow();
+}
+
+function dayText() {
+  const day = logsByDay[todayKey()] || [];
+  const rows = day.map(r =>
+    hm(r.start) + "\u2013" + hm(r.end) + "  " + fmt(r.end - r.start) + "  " + r.task
+  );
+  if (current) rows.push(hm(current.start) + "\u2013\u2026  en cours  " + current.task);
+  const sums = {};
+  day.forEach(r => { sums[r.task] = (sums[r.task] || 0) + (r.end - r.start); });
+  const tot = Object.entries(sums).map(([k,v]) => "- " + k + " : " + fmt(v)).join("\n");
+  return "Journal " + todayKey() + "\n\n" + rows.join("\n") + "\n\nTotaux :\n" + tot +
+    "\n\nPeux-tu faire un tableau (tâche, début, fin, durée nette) et un texte court de justification par tâche ?";
+}
+
+$("btnStop").onclick = () => { stopCurrent(); persist(); render(); };
+$("btnInterrupt").onclick = () => startTask("Interruption");
+$("btnAdd").onclick = () => {
+  const v = $("newTask").value.trim();
+  if (!v) return;
+  if (!tasks.includes(v)) tasks.push(v);
+  $("newTask").value = "";
+  persist();
+  render();
+};
+$("newTask").addEventListener("keydown", e => { if (e.key === "Enter") $("btnAdd").click(); });
+$("btnCopy").onclick = async () => {
+  const t = dayText();
+  try {
+    await navigator.clipboard.writeText(t);
+    alert("Copié. Collez dans Grok.");
+  } catch {
+    prompt("Copiez ce texte :", t);
+  }
+};
+$("btnCsv").onclick = () => {
+  const day = logsByDay[todayKey()] || [];
+  const lines = ["debut;fin;duree_sec;tache"];
+  day.forEach(r => {
+    lines.push(
+      new Date(r.start).toISOString() + ";" +
+      new Date(r.end).toISOString() + ";" +
+      Math.round((r.end-r.start)/1000) + ";" +
+      r.task.replace(/;/g, ",")
+    );
+  });
+  const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "pointeuse-" + todayKey() + ".csv";
+  a.click();
+};
+$("btnClearDay").onclick = () => {
+  if (!confirm("Effacer le journal d\u2019aujourd\u2019hui ?")) return;
+  logsByDay[todayKey()] = [];
+  persist();
+  render();
+};
+
+render();
+setInterval(renderNow, 1000);
+</script>
+</body>
+</html>
