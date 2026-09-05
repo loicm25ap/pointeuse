@@ -1,8 +1,6 @@
-# Pointeuse
+# Pointeuse et présences TPS
 
-Site de suivi du temps par tâches.
+- Pointeuse : https://loicm25ap.github.io/pointeuse/
+- Présences classe TPS : https://loicm25ap.github.io/pointeuse/classe.html
 
-- Dépôt : https://github.com/loicm25ap/pointeuse
-- Site : https://loicm25ap.github.io/pointeuse/
-
-Les heures restent dans le navigateur (localStorage). Rien n’est envoyé sur le serveur.
+Données stockées dans le navigateur uniquement.
